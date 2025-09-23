@@ -10,7 +10,6 @@ class StudentController extends BaseController
     {
         $userModel = new UserModel();
         
-        // Ambil semua data user yang rolenya 'Mahasiswa' dan join dengan data student
         $data['students'] = $userModel
             ->select('users.user_id, users.username, users.full_name, students.entry_year')
             ->join('students', 'students.student_id = users.user_id')
@@ -22,10 +21,24 @@ class StudentController extends BaseController
 
     public function create()
     {
+        // 1. Definisikan Aturan Validasi
+        $rules = [
+            'full_name'  => 'required|min_length[3]',
+            'username'   => 'required|min_length[5]|is_unique[users.username]',
+            'password'   => 'required|min_length[8]',
+            'entry_year' => 'required|exact_length[4]|numeric'
+        ];
+
+        // 2. Jalankan Validasi
+        if (!$this->validate($rules)) {
+            // Jika validasi gagal, kembali ke form dengan error dan input lama
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        // 3. Jika validasi berhasil, lanjutkan proses penyimpanan
         $userModel = new UserModel();
         $studentModel = new StudentModel();
         
-        // 1. Simpan data ke tabel 'users'
         $userData = [
             'username'  => $this->request->getPost('username'),
             'password'  => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
@@ -33,23 +46,14 @@ class StudentController extends BaseController
             'role'      => 'Mahasiswa'
         ];
         
-        // Gunakan transaction untuk memastikan kedua insert berhasil
-        $this->db = \Config\Database::connect();
-        $this->db->transStart();
-        
         $userModel->insert($userData);
-        
-        // 2. Ambil user_id yang baru saja dibuat
         $newUserId = $userModel->getInsertID();
 
-        // 3. Simpan data ke tabel 'students'
         $studentData = [
             'student_id' => $newUserId,
             'entry_year' => $this->request->getPost('entry_year')
         ];
         $studentModel->insert($studentData);
-
-        $this->db->transComplete();
 
         return redirect()->to('/admin/students')->with('success', 'Data mahasiswa berhasil ditambahkan.');
     }
@@ -57,8 +61,6 @@ class StudentController extends BaseController
     public function delete($id)
     {
         $userModel = new UserModel();
-        // Karena kita menggunakan CASCADE on delete di migrasi,
-        // menghapus data di tabel 'users' akan otomatis menghapus data terkait di 'students'.
         $userModel->delete($id);
 
         return redirect()->to('/admin/students')->with('success', 'Data mahasiswa berhasil dihapus.');
