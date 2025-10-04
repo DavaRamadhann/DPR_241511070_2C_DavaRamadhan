@@ -44,7 +44,12 @@ Data Penggajian Anggota
                                 <td><?= esc($item['jabatan']) ?></td>
                                 <td><strong>Rp <?= number_format($item['total_gaji'] ?? 0, 0, ',', '.') ?></strong></td>
                                 <td>
-                                    <a href="#" class="btn btn-sm btn-info" title="Lihat Detail"><i class="fas fa-eye"></i></a>
+                                    <a href="<?= site_url('admin/penggajian/detail/' . $item['id_anggota']) ?>" class="btn btn-sm btn-info" title="Lihat Detail"><i class="fas fa-eye"></i> Detail</a>
+
+                                    <form action="<?= site_url('admin/penggajian/delete/' . $item['id_anggota']) ?>" method="POST" class="d-inline" onsubmit="return confirm('PERHATIAN: Aksi ini akan menghapus SEMUA komponen gaji untuk anggota ini. Lanjutkan?');">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Reset Gaji"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

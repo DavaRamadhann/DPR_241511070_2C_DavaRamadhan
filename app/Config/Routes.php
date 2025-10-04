@@ -45,6 +45,10 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->get('penggajian', 'AdminController::penggajian');
     $routes->get('penggajian/create', 'AdminController::createPenggajian');
     $routes->post('penggajian/store', 'AdminController::storePenggajian');
+
+    $routes->get('penggajian/detail/(:num)', 'AdminController::detailPenggajian/$1');
+    $routes->post('penggajian/delete-komponen/(:num)', 'AdminController::deleteKomponenPenggajian/$1'); 
+    $routes->post('penggajian/delete/(:num)', 'AdminController::deletePenggajian/$1');
 });
 
 // Rute Publik

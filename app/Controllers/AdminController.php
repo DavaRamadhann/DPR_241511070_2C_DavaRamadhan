@@ -353,8 +353,9 @@ class AdminController extends BaseController
         $db = \Config\Database::connect();
 
         // 1. Ambil semua komponen gaji pokok & jabatan yang sudah terdaftar
+        // Modifikasi query untuk mengambil id_penggajian
         $builder = $db->table('penggajian p');
-        $builder->select('kg.nama_komponen, kg.kategori, kg.nominal');
+        $builder->select('p.id, kg.nama_komponen, kg.kategori, kg.nominal');
         $builder->join('komponen_gaji kg', 'p.id_komponen = kg.id_komponen');
         $builder->where('p.id_anggota', $id_anggota);
         $komponen_diterima = $builder->get()->getResultArray();
@@ -369,23 +370,38 @@ class AdminController extends BaseController
             }
         }
     
-        // 3. Hitung Tunjangan Anak (maksimal 2 anak)
-        $anak_dihitung = min($data['anggota']['jumlah_anak'], 2); // Ambil nilai terkecil antara jumlah anak dan 2
-        $tunjangan_anak_satuan = 0;
-        $query = $db->table('komponen_gaji')->where('nama_komponen', 'Tunjangan Anak')->get()->getRow();
-        if($query){
-            $tunjangan_anak_satuan = $query->nominal;
-        }
-        $tunjangan_anak_total = $anak_dihitung * $tunjangan_anak_satuan;
-    
         // Kirim data tunjangan ke view
         $data['tunjangan_pasangan'] = ['nama' => 'Tunjangan Istri/Suami', 'nominal' => $tunjangan_pasangan];
-        $data['tunjangan_anak'] = ['nama' => "Tunjangan Anak ($anak_dihitung anak)", 'nominal' => $tunjangan_anak_total];
-
+    
         // 4. Hitung total Take Home Pay
         $total_pokok_jabatan = array_sum(array_column($komponen_diterima, 'nominal'));
-        $data['take_home_pay'] = $total_pokok_jabatan + $tunjangan_pasangan + $tunjangan_anak_total;
+        $data['take_home_pay'] = $total_pokok_jabatan + $tunjangan_pasangan;
 
         return view('admin/penggajian/detail', $data);
+    }
+
+    public function deleteKomponenPenggajian($id_penggajian)
+    {
+        $penggajianModel = new PenggajianModel();
+        
+        // Ambil data penggajian untuk mendapatkan id_anggota sebelum dihapus
+        $penggajian = $penggajianModel->find($id_penggajian);
+        if ($penggajian) {
+            $id_anggota = $penggajian['id_anggota'];
+            $penggajianModel->delete($id_penggajian);
+            
+            return redirect()->to('/admin/penggajian/detail/' . $id_anggota)
+                             ->with('success', 'Satu komponen gaji berhasil dihapus.');
+        }
+
+        return redirect()->back()->with('error', 'Data tidak ditemukan.');
+    }
+
+    public function deletePenggajian($id_anggota)
+    {
+        $penggajianModel = new PenggajianModel();
+        $penggajianModel->where('id_anggota', $id_anggota)->delete();
+
+        return redirect()->to('/admin/penggajian')->with('success', 'Semua data penggajian untuk anggota tersebut berhasil direset.');
     }
 }
