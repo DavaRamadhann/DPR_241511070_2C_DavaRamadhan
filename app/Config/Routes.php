@@ -40,6 +40,10 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->get('komponen/edit/(:num)', 'AdminController::editKomponen/$1');  
     $routes->post('komponen/update/(:num)', 'AdminController::updateKomponen/$1'); 
     $routes->post('komponen/delete/(:num)', 'AdminController::deleteKomponen/$1'); 
+
+    // --- RUTE BARU UNTUK PENGGAJIAN ---
+    $routes->get('penggajian/create', 'AdminController::createPenggajian');
+    $routes->post('penggajian/store', 'AdminController::storePenggajian');
 });
 
 // Rute Publik

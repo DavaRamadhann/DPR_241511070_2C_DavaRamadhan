@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\AnggotaModel;
+use App\Models\PenggajianModel;
+use App\Models\KomponenGajiModel;
 
 class AdminController extends BaseController
 {
@@ -234,14 +236,76 @@ class AdminController extends BaseController
         return redirect()->to('/admin/komponen')->with('success', 'Data komponen gaji berhasil diperbarui!');
     }
 
-    /**
-     * Menghapus data komponen gaji berdasarkan ID.
-     */
     public function deleteKomponen($id)
     {
         $model = new \App\Models\KomponenGajiModel();
         $model->delete($id);
 
         return redirect()->to('/admin/komponen')->with('success', 'Komponen gaji berhasil dihapus.');
+    }
+
+    public function createPenggajian()
+    {
+        $anggotaModel = new \App\Models\AnggotaModel();
+        $komponenModel = new KomponenGajiModel();
+
+        $data['anggota'] = $anggotaModel->findAll();
+        $data['komponen'] = []; // Awalnya kosong, akan diisi via JavaScript
+
+        // Ambil ID anggota dari URL jika ada (untuk auto-select)
+        $selectedAnggotaId = $this->request->getGet('id_anggota');
+        if ($selectedAnggotaId) {
+            $anggota = $anggotaModel->find($selectedAnggotaId);
+            if ($anggota) {
+                // Ambil komponen yang sesuai dengan jabatan anggota + yang berlaku untuk "Semua"
+                $data['komponen'] = $komponenModel->where('jabatan', $anggota['jabatan'])
+                                                  ->orWhere('jabatan', 'Semua')
+                                                  ->findAll();
+
+                // Ambil komponen yang sudah ditambahkan untuk anggota ini
+                $penggajianModel = new PenggajianModel();
+                $sudahAda = $penggajianModel->where('id_anggota', $selectedAnggotaId)->findColumn('id_komponen');
+                $data['komponen_sudah_ada'] = $sudahAda ?? [];
+            }
+        }
+        $data['selected_anggota_id'] = $selectedAnggotaId;
+
+        return view('admin/penggajian/create', $data);
+    }
+
+    public function storePenggajian()
+    {
+        $rules = [
+            'id_anggota' => 'required',
+            'id_komponen' => 'required',
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $idAnggota = $this->request->getPost('id_anggota');
+        $idKomponen = $this->request->getPost('id_komponen');
+
+        $model = new PenggajianModel();
+
+        // Validasi agar tidak ada komponen ganda
+        $existing = $model->where('id_anggota', $idAnggota)
+                          ->where('id_komponen', $idKomponen)
+                          ->first();
+
+        if ($existing) {
+            return redirect()->to('/admin/penggajian/create?id_anggota=' . $idAnggota)
+                             ->with('error', 'Komponen gaji tersebut sudah ditambahkan untuk anggota ini.');
+        }
+
+        $model->save([
+            'id_anggota' => $idAnggota,
+            'id_komponen' => $idKomponen,
+        ]);
+
+        // Redirect kembali ke halaman yang sama untuk menambah komponen lain
+        return redirect()->to('/admin/penggajian/create?id_anggota=' . $idAnggota)
+                         ->with('success', 'Komponen berhasil ditambahkan ke penggajian anggota.');
     }
 }
