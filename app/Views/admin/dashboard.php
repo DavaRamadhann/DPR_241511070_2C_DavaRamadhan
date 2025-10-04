@@ -61,7 +61,7 @@ Dashboard Admin
                         <span class="text">Tambah Anggota Baru</span>
                     </a>
                     <div class="my-2"></div>
-                    <a href="#" class="btn btn-success btn-icon-split">
+                    <a href="<?= site_url('admin/komponen/create') ?>" class="btn btn-success btn-icon-split">
                         <span class="icon text-white-50">
                             <i class="fas fa-list-ul"></i>
                         </span>

@@ -34,7 +34,7 @@
                     <a class="nav-link <?= is_active('anggota') ?>" href="<?= site_url('admin/anggota') ?>">Anggota DPR</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= is_active('komponen-gaji') ?>" href="#">Komponen Gaji</a>
+                    <a class="nav-link <?= is_active('komponen') ?>" href="<?= site_url('admin/komponen') ?>">Komponen Gaji</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link <?= is_active('penggajian') ?>" href="#">Penggajian</a>

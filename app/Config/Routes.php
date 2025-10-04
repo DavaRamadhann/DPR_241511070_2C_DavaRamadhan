@@ -31,6 +31,11 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->get('anggota/edit/(:num)', 'AdminController::editAnggota/$1');
     $routes->post('anggota/update/(:num)', 'AdminController::updateAnggota/$1'); 
     $routes->post('anggota/delete/(:num)', 'AdminController::deleteAnggota/$1'); 
+
+    // --- RUTE BARU UNTUK KOMPONEN GAJI ---
+    $routes->get('komponen', 'AdminController::komponenGaji');
+    $routes->get('komponen/create', 'AdminController::createKomponen');
+    $routes->post('komponen/store', 'AdminController::storeKomponen');
 });
 
 // Rute Publik

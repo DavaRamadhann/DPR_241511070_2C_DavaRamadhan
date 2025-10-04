@@ -142,4 +142,56 @@ class AdminController extends BaseController
 
         return redirect()->to('/admin/anggota')->with('success', 'Data anggota berhasil dihapus.');
     }
+
+    // --- METHOD BARU UNTUK KOMPONEN GAJI ---
+
+    /**
+     * Menampilkan halaman form untuk menambah komponen gaji baru.
+     */
+    public function createKomponen()
+    {
+        return view('admin/komponen/create');
+    }
+
+    /**
+     * Memvalidasi dan menyimpan data komponen gaji baru.
+     */
+    public function storeKomponen()
+    {
+        // Aturan validasi
+        $rules = [
+            'nama_komponen' => 'required|min_length[3]',
+            'kategori'      => 'required',
+            'jabatan'       => 'required',
+            'nominal'       => 'required|numeric',
+            'satuan'        => 'required'
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $model = new \App\Models\KomponenGajiModel(); // Panggil modelnya
+        $model->save([
+            'nama_komponen' => $this->request->getPost('nama_komponen'),
+            'kategori'      => $this->request->getPost('kategori'),
+            'jabatan'       => $this->request->getPost('jabatan'),
+            'nominal'       => $this->request->getPost('nominal'),
+            'satuan'        => $this->request->getPost('satuan')
+        ]);
+
+        return redirect()->to('/admin/komponen/create')->with('success', 'Komponen gaji berhasil ditambahkan!');
+    }
+
+    public function komponenGaji()
+    {
+        $model = new \App\Models\KomponenGajiModel();
+        $data['komponen'] = $model->findAll();
+        
+        // Nanti, kita akan buat view-nya. Untuk sekarang, ini sudah cukup.
+        // return view('admin/komponen/index', $data); 
+        
+        // Untuk sementara, kita bisa tampilkan pesan saja
+        echo "<h1>Halaman Daftar Komponen Gaji</h1><p>Fitur ini akan kita lengkapi selanjutnya.</p>";
+    }
 }
