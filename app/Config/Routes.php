@@ -5,37 +5,33 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-// Rute utama sekarang adalah halaman pemilihan peran
-$routes->get('/', 'AuthController::selectRole');
 
-// Rute untuk menampilkan halaman login spesifik
-$routes->get('/login/admin', 'AuthController::loginAdmin');
-$routes->get('/login/mahasiswa', 'AuthController::loginMahasiswa');
+$routes->get('/', 'AuthController::chooseLogin');
+$routes->get('logout', 'AuthController::logout');
 
-// Rute untuk memproses form login diarahkan ke metode yang benar
-$routes->post('/login/admin', 'AuthController::processAdminLogin'); // Diperbarui
-$routes->post('/login/mahasiswa', 'AuthController::processMahasiswaLogin'); // Diperbarui
+// Rute untuk MENAMPILKAN halaman login
+$routes->get('login/admin', 'AuthController::showAdminLogin');
 
-$routes->get('/logout', 'AuthController::logout');
+// Rute untuk MEMPROSES form login
+$routes->post('login/admin', 'AuthController::processAdminLogin');
 
-// ... sisa kode rute tetap sama ...
-$routes->group('', ['filter' => 'auth'], function ($routes) {
-    $routes->get('/dashboard', 'DashboardController::index');
+// Rute Admin (dijaga oleh filter 'auth')
+$routes->group('admin', ['filter' => 'auth'], function ($routes) {
+    $routes->get('dashboard', 'AdminController::dashboard');
+    
+    // Rute untuk Anggota
+    $routes->get('anggota', 'AdminController::anggota');
+    
+    // TAMBAHKAN BARIS INI: Untuk menampilkan form tambah anggota
+    $routes->get('anggota/create', 'AdminController::createAnggota');
+    
+    // Rute ini untuk memproses data dari form tambah anggota
+    $routes->post('anggota/store', 'AdminController::storeAnggota'); 
+});
 
-    // Grup khusus untuk Admin
-    $routes->group('admin', ['filter' => 'role:Admin'], function ($routes) {
-        $routes->get('courses', 'Admin\CourseController::index');
-        $routes->post('courses/create', 'Admin\CourseController::create');
-        $routes->post('courses/delete/(:num)', 'Admin\CourseController::delete/$1');
-        $routes->get('students', 'Admin\StudentController::index');
-        $routes->post('students/create', 'Admin\StudentController::create');
-        $routes->post('students/delete/(:num)', 'Admin\StudentController::delete/$1');
-    });
-
-    // Grup khusus untuk Mahasiswa
-    $routes->group('mahasiswa', ['filter' => 'role:Mahasiswa'], function ($routes) {
-        $routes->get('courses', 'Mahasiswa\CourseController::index');
-        $routes->post('courses/enroll', 'Mahasiswa\CourseController::enroll');
-        $routes->get('my-courses', 'Mahasiswa\CourseController::myCourses');
-    });
+// Rute Publik
+$routes->group('public', function ($routes) {
+    $routes->get('/', 'PublicController::dashboard');
+    $routes->get('anggota', 'PublicController::anggota');
+    $routes->get('penggajian', 'PublicController::penggajian');
 });

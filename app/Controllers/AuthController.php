@@ -1,68 +1,55 @@
-<?php namespace App\Controllers;
-use App\Models\UserModel;
+<?php
+
+namespace App\Controllers;
+
+use App\Models\AdminModel;
 
 class AuthController extends BaseController
 {
-    public function selectRole() {
-        return view('auth/role_selection');
+    // Halaman utama untuk memilih peran
+    public function chooseLogin()
+    {
+        return view('auth/choose_login');
     }
 
-    public function loginAdmin() {
-        $data = [
-            'role' => 'Admin',
-            'formAction' => 'login/admin'
-        ];
-        return view('auth/login', $data);
-    }
-    
-    public function loginMahasiswa() {
-        $data = [
-            'role' => 'Mahasiswa',
-            'formAction' => 'login/mahasiswa'
-        ];
-        return view('auth/login', $data);
+    // Hanya untuk MENAMPILKAN halaman login admin
+    public function showAdminLogin()
+    {
+        return view('auth/login_admin', ['title' => 'Admin Login']);
     }
 
+    // Hanya untuk MEMPROSES data login admin
     public function processAdminLogin()
     {
-        // Langsung panggil processLoginAttempt dan kembalikan hasilnya
-        return $this->processLoginAttempt('Admin');
-    }
+        $session = session();
+        $model = new AdminModel();
 
-    public function processMahasiswaLogin()
-    {
-        // Langsung panggil processLoginAttempt dan kembalikan hasilnya
-        return $this->processLoginAttempt('Mahasiswa');
-    }
-
-    private function processLoginAttempt(string $expectedRole)
-    {
-        $userModel = new UserModel();
         $username = $this->request->getPost('username');
         $password = $this->request->getPost('password');
 
-        $user = $userModel->where('username', $username)->first();
+        $adminData = $model->where('username', $username)->first();
 
-        if (!$user || !password_verify($password, $user['password'])) {
-            return redirect()->back()->withInput()->with('error', 'Username atau Password salah!');
+        // Cek username dan verifikasi password
+        if ($adminData && password_verify($password, $adminData['password'])) {
+            // Jika login berhasil, siapkan data session
+            $sessionData = [
+                'admin_id'   => $adminData['id_pengguna'],
+                'username'   => $adminData['username'],
+                'logged_in'  => true, // Gunakan boolean `true` bukan string `TRUE`
+                'role'       => 'Admin'
+            ];
+            $session->set($sessionData);
+
+            // Arahkan ke dashboard admin
+            return redirect()->to('/admin/dashboard');
         }
 
-        if ($user['role'] !== $expectedRole) {
-            return redirect()->back()->withInput()->with('error', "Akses ditolak. Akun ini bukan akun {$expectedRole}.");
-        }
-        
-        $sessionData = [
-            'user_id'    => $user['user_id'],
-            'username'   => $user['username'],
-            'role'       => $user['role'],
-            'isLoggedIn' => true,
-        ];
-        session()->set($sessionData);
-        
-        // Pastikan redirect mengarah ke URL yang benar
-        return redirect()->to('/dashboard');
+        // Jika login gagal, kembali dengan pesan error
+        $session->setFlashdata('msg', 'Username atau Password salah.');
+        return redirect()->to('/login/admin');
     }
 
+    // Fungsi logout
     public function logout()
     {
         session()->destroy();
