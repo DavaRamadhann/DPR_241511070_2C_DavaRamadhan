@@ -84,7 +84,21 @@ class AdminController extends BaseController
     public function anggota()
     {
         $model = new AnggotaModel();
-        $data['anggota'] = $model->findAll();
+        $keyword = $this->request->getGet('keyword'); // Ambil kata kunci dari URL
+
+        if ($keyword) {
+            // Jika ada kata kunci pencarian, lakukan query pencarian
+            $data['anggota'] = $model->like('nama_depan', $keyword)
+                                     ->orLike('nama_belakang', $keyword)
+                                     ->orLike('jabatan', $keyword)
+                                     ->orLike('id_anggota', $keyword)
+                                     ->findAll();
+        } else {
+            // Jika tidak ada, tampilkan semua data
+            $data['anggota'] = $model->findAll();
+        }
+
+        $data['keyword'] = $keyword; // Kirim keyword kembali ke view untuk ditampilkan di form
         return view('admin/anggota/index', $data);
     }
 
@@ -187,10 +201,25 @@ class AdminController extends BaseController
 
     public function komponenGaji()
     {
-        $model = new \App\Models\KomponenGajiModel();
-        $data['komponen'] = $model->findAll();
-        
-        return view('admin/komponen/index', $data); 
+        $model = new KomponenGajiModel();
+        $keyword = $this->request->getGet('keyword'); // Ambil kata kunci dari URL
+
+        if ($keyword) {
+            // Jika ada kata kunci pencarian, lakukan query pencarian multi-kolom
+            $data['komponen'] = $model->like('nama_komponen', $keyword)
+                                      ->orLike('kategori', $keyword)
+                                      ->orLike('jabatan', $keyword)
+                                      ->orLike('nominal', $keyword)
+                                      ->orLike('satuan', $keyword)
+                                      ->orLike('id_komponen', $keyword)
+                                      ->findAll();
+        } else {
+            // Jika tidak ada, tampilkan semua data
+            $data['komponen'] = $model->findAll();
+        }
+
+        $data['keyword'] = $keyword; // Kirim keyword kembali ke view
+        return view('admin/komponen/index', $data);
     }
 
     public function editKomponen($id)
@@ -244,25 +273,60 @@ class AdminController extends BaseController
         return redirect()->to('/admin/komponen')->with('success', 'Komponen gaji berhasil dihapus.');
     }
 
+    /**
+     * Menampilkan daftar penggajian dengan Take Home Pay dan fitur pencarian.
+     */
+    public function penggajian()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('anggota a');
+        
+        // Query utama untuk mengambil data anggota
+        $builder->select("
+            a.id_anggota, a.gelar_depan, a.nama_depan, a.nama_belakang, a.gelar_belakang, 
+            a.jabatan, a.status_pernikahan
+        ");
+
+        // Logika Pencarian
+        $keyword = $this->request->getGet('keyword');
+        if ($keyword) {
+            $builder->like('a.nama_depan', $keyword)
+                    ->orLike('a.nama_belakang', $keyword)
+                    ->orLike('a.jabatan', $keyword)
+                    ->orLike('a.id_anggota', $keyword);
+        }
+        
+        $anggotaList = $builder->get()->getResultArray();
+        
+        // Lakukan perhitungan Take Home Pay di PHP untuk setiap anggota
+        foreach ($anggotaList as &$anggota) {
+            $anggota['take_home_pay'] = $this->hitungTakeHomePay($anggota['id_anggota']);
+        }
+        
+        $data['penggajian'] = $anggotaList;
+        $data['keyword'] = $keyword;
+
+        return view('admin/penggajian/index', $data);
+    }
+
+    /**
+     * Menampilkan form untuk menambah data penggajian.
+     */
     public function createPenggajian()
     {
-        $anggotaModel = new \App\Models\AnggotaModel();
+        $anggotaModel = new AnggotaModel();
         $komponenModel = new KomponenGajiModel();
 
-        $data['anggota'] = $anggotaModel->findAll();
-        $data['komponen'] = []; // Awalnya kosong, akan diisi via JavaScript
+        $data['anggota_list'] = $anggotaModel->findAll();
+        $data['komponen_list'] = []; 
 
-        // Ambil ID anggota dari URL jika ada (untuk auto-select)
         $selectedAnggotaId = $this->request->getGet('id_anggota');
         if ($selectedAnggotaId) {
             $anggota = $anggotaModel->find($selectedAnggotaId);
             if ($anggota) {
-                // Ambil komponen yang sesuai dengan jabatan anggota + yang berlaku untuk "Semua"
-                $data['komponen'] = $komponenModel->where('jabatan', $anggota['jabatan'])
-                                                  ->orWhere('jabatan', 'Semua')
-                                                  ->findAll();
+                // Challenge Validation: Komponen gaji menyesuaikan jabatan
+                $data['komponen_list'] = $komponenModel->whereIn('jabatan', [$anggota['jabatan'], 'Semua'])->findAll();
 
-                // Ambil komponen yang sudah ditambahkan untuk anggota ini
                 $penggajianModel = new PenggajianModel();
                 $sudahAda = $penggajianModel->where('id_anggota', $selectedAnggotaId)->findColumn('id_komponen');
                 $data['komponen_sudah_ada'] = $sudahAda ?? [];
@@ -273,77 +337,35 @@ class AdminController extends BaseController
         return view('admin/penggajian/create', $data);
     }
 
+    /**
+     * Memproses dan menyimpan data penggajian baru.
+     */
     public function storePenggajian()
     {
-        $rules = [
-            'id_anggota' => 'required',
-            'id_komponen' => 'required',
-        ];
-
-        if (! $this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }
-
         $idAnggota = $this->request->getPost('id_anggota');
         $idKomponen = $this->request->getPost('id_komponen');
 
         $model = new PenggajianModel();
 
-        // Validasi agar tidak ada komponen ganda
-        $existing = $model->where('id_anggota', $idAnggota)
-                          ->where('id_komponen', $idKomponen)
-                          ->first();
-
+        // Challenge Validation: Tidak bisa menambahkan komponen yang sama
+        $existing = $model->where(['id_anggota' => $idAnggota, 'id_komponen' => $idKomponen])->first();
         if ($existing) {
             return redirect()->to('/admin/penggajian/create?id_anggota=' . $idAnggota)
                              ->with('error', 'Komponen gaji tersebut sudah ditambahkan untuk anggota ini.');
         }
 
-        $model->save([
-            'id_anggota' => $idAnggota,
-            'id_komponen' => $idKomponen,
-        ]);
+        $model->save(['id_anggota' => $idAnggota, 'id_komponen' => $idKomponen]);
 
-        // Redirect kembali ke halaman yang sama untuk menambah komponen lain
         return redirect()->to('/admin/penggajian/create?id_anggota=' . $idAnggota)
-                         ->with('success', 'Komponen berhasil ditambahkan ke penggajian anggota.');
+                         ->with('success', 'Komponen berhasil ditambahkan.');
     }
-
-    // --- METHOD BARU UNTUK MELIHAT DATA PENGGAJIAN ---
 
     /**
-     * Menampilkan daftar penggajian semua anggota dengan total Take Home Pay.
+     * Menampilkan rincian detail penggajian untuk satu anggota.
      */
-    public function penggajian()
-    {
-        $db = \Config\Database::connect();
-        
-        // Query builder untuk menggabungkan tabel dan menghitung total gaji
-        $builder = $db->table('anggota');
-        $builder->select('
-            anggota.id_anggota, 
-            anggota.gelar_depan, 
-            anggota.nama_depan, 
-            anggota.nama_belakang, 
-            anggota.gelar_belakang, 
-            anggota.jabatan,
-            (
-                SELECT SUM(komponen_gaji.nominal) 
-                FROM penggajian 
-                JOIN komponen_gaji ON penggajian.id_komponen = komponen_gaji.id_komponen
-                WHERE penggajian.id_anggota = anggota.id_anggota
-            ) as total_gaji
-        ');
-        $builder->groupBy('anggota.id_anggota');
-        
-        $data['penggajian'] = $builder->get()->getResultArray();
-
-        return view('admin/penggajian/index', $data);
-    }
-
     public function detailPenggajian($id_anggota)
     {
-        $anggotaModel = new \App\Models\AnggotaModel();
+        $anggotaModel = new AnggotaModel();
         $data['anggota'] = $anggotaModel->find($id_anggota);
 
         if (!$data['anggota']) {
@@ -351,57 +373,71 @@ class AdminController extends BaseController
         }
     
         $db = \Config\Database::connect();
-
-        // 1. Ambil semua komponen gaji pokok & jabatan yang sudah terdaftar
-        // Modifikasi query untuk mengambil id_penggajian
+        
         $builder = $db->table('penggajian p');
         $builder->select('p.id, kg.nama_komponen, kg.kategori, kg.nominal');
         $builder->join('komponen_gaji kg', 'p.id_komponen = kg.id_komponen');
         $builder->where('p.id_anggota', $id_anggota);
-        $komponen_diterima = $builder->get()->getResultArray();
-        $data['komponen_diterima'] = $komponen_diterima;
+        $data['komponen_diterima'] = $builder->get()->getResultArray();
     
-        // 2. Hitung Tunjangan Istri/Suami (jika status 'Kawin')
-        $tunjangan_pasangan = 0;
-        if($data['anggota']['status_pernikahan'] == 'Kawin'){
-            $query = $db->table('komponen_gaji')->where('nama_komponen', 'Tunjangan Istri/Suami')->get()->getRow();
-            if ($query) {
-                $tunjangan_pasangan = $query->nominal;
-            }
-        }
-    
-        // Kirim data tunjangan ke view
-        $data['tunjangan_pasangan'] = ['nama' => 'Tunjangan Istri/Suami', 'nominal' => $tunjangan_pasangan];
-    
-        // 4. Hitung total Take Home Pay
-        $total_pokok_jabatan = array_sum(array_column($komponen_diterima, 'nominal'));
-        $data['take_home_pay'] = $total_pokok_jabatan + $tunjangan_pasangan;
+        $data['take_home_pay'] = $this->hitungTakeHomePay($id_anggota, $data);
 
         return view('admin/penggajian/detail', $data);
     }
-
+    
+    /**
+     * Menghapus satu komponen dari penggajian (fungsi "Ubah").
+     */
     public function deleteKomponenPenggajian($id_penggajian)
     {
         $penggajianModel = new PenggajianModel();
-        
-        // Ambil data penggajian untuk mendapatkan id_anggota sebelum dihapus
         $penggajian = $penggajianModel->find($id_penggajian);
         if ($penggajian) {
             $id_anggota = $penggajian['id_anggota'];
             $penggajianModel->delete($id_penggajian);
-            
             return redirect()->to('/admin/penggajian/detail/' . $id_anggota)
                              ->with('success', 'Satu komponen gaji berhasil dihapus.');
         }
-
         return redirect()->back()->with('error', 'Data tidak ditemukan.');
     }
 
+    /**
+     * Menghapus SEMUA data penggajian untuk seorang anggota.
+     */
     public function deletePenggajian($id_anggota)
     {
         $penggajianModel = new PenggajianModel();
         $penggajianModel->where('id_anggota', $id_anggota)->delete();
-
         return redirect()->to('/admin/penggajian')->with('success', 'Semua data penggajian untuk anggota tersebut berhasil direset.');
+    }
+
+    /**
+     * Helper function untuk menghitung Take Home Pay.
+     */
+    private function hitungTakeHomePay($id_anggota, &$data = [])
+    {
+        $db = \Config\Database::connect();
+        $anggota = $data['anggota'] ?? (new AnggotaModel())->find($id_anggota);
+
+        // 1. Hitung total dari komponen yang terdaftar di tabel `penggajian`
+        $builder = $db->table('penggajian');
+        $builder->selectSum('komponen_gaji.nominal');
+        $builder->join('komponen_gaji', 'komponen_gaji.id_komponen = penggajian.id_komponen');
+        $builder->where('penggajian.id_anggota', $id_anggota);
+        $total_pokok_jabatan = $builder->get()->getRow()->nominal ?? 0;
+
+        // 2. Hitung Tunjangan Istri/Suami
+        $tunjangan_pasangan = 0;
+        if($anggota['status_pernikahan'] == 'Kawin'){
+            $query = $db->table('komponen_gaji')->where('nama_komponen', 'Tunjangan Istri/Suami')->get()->getRow();
+            if ($query) $tunjangan_pasangan = $query->nominal;
+        }
+
+        // Kirim data detail ke view jika $data di-pass by reference
+        if (!empty($data)) {
+            $data['tunjangan_pasangan'] = ['nama' => 'Tunjangan Istri/Suami', 'nominal' => $tunjangan_pasangan];
+        }
+
+        return $total_pokok_jabatan + $tunjangan_pasangan ;
     }
 }

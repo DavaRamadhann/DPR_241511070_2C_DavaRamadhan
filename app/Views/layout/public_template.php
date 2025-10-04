@@ -6,45 +6,49 @@
     <title><?= $this->renderSection('title', 'Transparansi Gaji DPR') ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Style untuk menu yang aktif */
+        body {
+            background-color: #f0f2f5; /* Warna latar belakang lebih lembut */
+        }
+        .navbar {
+            border-bottom: 1px solid #ddd;
+        }
         .nav-link.active {
             font-weight: bold;
-            color: #000 !important;
-            border-bottom: 2px solid #0d6efd;
+            color: #0d6efd !important;
         }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="<?= site_url('public') ?>"><b>Gaji DPR</b></a>
+        <a class="navbar-brand fw-bold" href="<?= site_url('public') ?>">TRANSPARANSI DPR</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                 <li class="nav-item">
-                    <a class="nav-link <?= is_active('') ?>" href="<?= site_url('public') ?>">Dashboard</a>
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link <?= is_active('') ? 'active' : '' ?>" href="<?= site_url('public') ?>">Dashboard</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= is_active('anggota') ?>" href="<?= site_url('public/anggota') ?>">Data Anggota</a>
+                    <a class="nav-link <?= is_active('anggota') ? 'active' : '' ?>" href="<?= site_url('public/anggota') ?>">Data Anggota</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= is_active('penggajian') ?>" href="<?= site_url('public/penggajian') ?>">Data Penggajian</a>
+                    <a class="nav-link <?= is_active('penggajian') ? 'active' : '' ?>" href="<?= site_url('public/penggajian') ?>">Data Penggajian</a>
                 </li>
             </ul>
-            <a href="<?= site_url('/') ?>" class="btn btn-outline-primary">Halaman Awal</a>
+            <a href="<?= site_url('/') ?>" class="btn btn-outline-primary">Kembali</a>
         </div>
     </div>
 </nav>
 
-<main class="container mt-4">
+<main class="mt-4">
     <?= $this->renderSection('content') ?>
 </main>
 
-<footer class="text-center mt-5 py-3">
-    <p class="text-muted">&copy; <?= date('Y') ?> Aplikasi Penghitungan Gaji DPR</p>
+<footer class="text-center mt-5 py-4 bg-white border-top">
+    <p class="mb-0 text-muted">&copy; <?= date('Y') ?> Aplikasi Penghitungan Gaji DPR. Dibuat untuk Transparansi.</p>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -45,9 +45,8 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->get('penggajian', 'AdminController::penggajian');
     $routes->get('penggajian/create', 'AdminController::createPenggajian');
     $routes->post('penggajian/store', 'AdminController::storePenggajian');
-
     $routes->get('penggajian/detail/(:num)', 'AdminController::detailPenggajian/$1');
-    $routes->post('penggajian/delete-komponen/(:num)', 'AdminController::deleteKomponenPenggajian/$1'); 
+    $routes->post('penggajian/delete-komponen/(:num)', 'AdminController::deleteKomponenPenggajian/$1');
     $routes->post('penggajian/delete/(:num)', 'AdminController::deletePenggajian/$1');
 });
 
@@ -56,4 +55,5 @@ $routes->group('public', function ($routes) {
     $routes->get('/', 'PublicController::dashboard');
     $routes->get('anggota', 'PublicController::anggota');
     $routes->get('penggajian', 'PublicController::penggajian');
+    $routes->get('penggajian/detail/(:num)', 'PublicController::detailPenggajian/$1');
 });
