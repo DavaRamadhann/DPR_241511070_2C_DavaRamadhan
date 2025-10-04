@@ -69,8 +69,7 @@ class AdminController extends BaseController
             'nama_belakang'     => $this->request->getPost('nama_belakang'),
             'gelar_belakang'    => $this->request->getPost('gelar_belakang'),
             'jabatan'           => $this->request->getPost('jabatan'),
-            'status_pernikahan' => $this->request->getPost('status_pernikahan'),
-            'jumlah_anak'       => $this->request->getPost('jumlah_anak')
+            'status_pernikahan' => $this->request->getPost('status_pernikahan')
         ]);
 
         // 4. Arahkan kembali ke halaman daftar anggota dengan pesan sukses
@@ -85,5 +84,62 @@ class AdminController extends BaseController
         $model = new AnggotaModel();
         $data['anggota'] = $model->findAll();
         return view('admin/anggota/index', $data);
+    }
+
+    // --- METHOD BARU UNTUK FITUR UBAH ---
+    /**
+     * Menampilkan halaman form untuk mengubah data anggota.
+     */
+    public function editAnggota($id)
+    {
+        $model = new AnggotaModel();
+        $data['anggota'] = $model->find($id);
+
+        if (!$data['anggota']) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Data anggota tidak ditemukan.');
+        }
+
+        return view('admin/anggota/edit', $data);
+    }
+
+    /**
+     * Memproses dan memperbarui data anggota dari form edit.
+     */
+    public function updateAnggota($id)
+    {
+        // Aturan validasi bisa disesuaikan jika diperlukan
+        $rules = [
+            'nama_depan'    => 'required|min_length[2]|alpha_space',
+            'jabatan'       => 'required',
+            'status_pernikahan' => 'required'
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $model = new AnggotaModel();
+        $model->update($id, [
+            'gelar_depan'       => $this->request->getPost('gelar_depan'),
+            'nama_depan'        => $this->request->getPost('nama_depan'),
+            'nama_belakang'     => $this->request->getPost('nama_belakang'),
+            'gelar_belakang'    => $this->request->getPost('gelar_belakang'),
+            'jabatan'           => $this->request->getPost('jabatan'),
+            'status_pernikahan' => $this->request->getPost('status_pernikahan')
+        ]);
+
+        return redirect()->to('/admin/anggota')->with('success', 'Data anggota berhasil diperbarui!');
+    }
+
+    // --- METHOD BARU UNTUK FITUR HAPUS ---
+    /**
+     * Menghapus data anggota berdasarkan ID.
+     */
+    public function deleteAnggota($id)
+    {
+        $model = new AnggotaModel();
+        $model->delete($id);
+
+        return redirect()->to('/admin/anggota')->with('success', 'Data anggota berhasil dihapus.');
     }
 }
