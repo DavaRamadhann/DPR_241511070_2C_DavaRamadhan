@@ -180,7 +180,7 @@ class AdminController extends BaseController
             'satuan'        => $this->request->getPost('satuan')
         ]);
 
-        return redirect()->to('/admin/komponen/create')->with('success', 'Komponen gaji berhasil ditambahkan!');
+        return redirect()->to('/admin/komponen')->with('success', 'Komponen gaji berhasil ditambahkan!');
     }
 
     public function komponenGaji()
@@ -188,10 +188,6 @@ class AdminController extends BaseController
         $model = new \App\Models\KomponenGajiModel();
         $data['komponen'] = $model->findAll();
         
-        // Nanti, kita akan buat view-nya. Untuk sekarang, ini sudah cukup.
-        // return view('admin/komponen/index', $data); 
-        
-        // Untuk sementara, kita bisa tampilkan pesan saja
-        echo "<h1>Halaman Daftar Komponen Gaji</h1><p>Fitur ini akan kita lengkapi selanjutnya.</p>";
+        return view('admin/komponen/index', $data); 
     }
 }
