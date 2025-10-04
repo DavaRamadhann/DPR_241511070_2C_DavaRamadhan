@@ -308,4 +308,84 @@ class AdminController extends BaseController
         return redirect()->to('/admin/penggajian/create?id_anggota=' . $idAnggota)
                          ->with('success', 'Komponen berhasil ditambahkan ke penggajian anggota.');
     }
+
+    // --- METHOD BARU UNTUK MELIHAT DATA PENGGAJIAN ---
+
+    /**
+     * Menampilkan daftar penggajian semua anggota dengan total Take Home Pay.
+     */
+    public function penggajian()
+    {
+        $db = \Config\Database::connect();
+        
+        // Query builder untuk menggabungkan tabel dan menghitung total gaji
+        $builder = $db->table('anggota');
+        $builder->select('
+            anggota.id_anggota, 
+            anggota.gelar_depan, 
+            anggota.nama_depan, 
+            anggota.nama_belakang, 
+            anggota.gelar_belakang, 
+            anggota.jabatan,
+            (
+                SELECT SUM(komponen_gaji.nominal) 
+                FROM penggajian 
+                JOIN komponen_gaji ON penggajian.id_komponen = komponen_gaji.id_komponen
+                WHERE penggajian.id_anggota = anggota.id_anggota
+            ) as total_gaji
+        ');
+        $builder->groupBy('anggota.id_anggota');
+        
+        $data['penggajian'] = $builder->get()->getResultArray();
+
+        return view('admin/penggajian/index', $data);
+    }
+
+    public function detailPenggajian($id_anggota)
+    {
+        $anggotaModel = new \App\Models\AnggotaModel();
+        $data['anggota'] = $anggotaModel->find($id_anggota);
+
+        if (!$data['anggota']) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Data anggota tidak ditemukan.');
+        }
+    
+        $db = \Config\Database::connect();
+
+        // 1. Ambil semua komponen gaji pokok & jabatan yang sudah terdaftar
+        $builder = $db->table('penggajian p');
+        $builder->select('kg.nama_komponen, kg.kategori, kg.nominal');
+        $builder->join('komponen_gaji kg', 'p.id_komponen = kg.id_komponen');
+        $builder->where('p.id_anggota', $id_anggota);
+        $komponen_diterima = $builder->get()->getResultArray();
+        $data['komponen_diterima'] = $komponen_diterima;
+    
+        // 2. Hitung Tunjangan Istri/Suami (jika status 'Kawin')
+        $tunjangan_pasangan = 0;
+        if($data['anggota']['status_pernikahan'] == 'Kawin'){
+            $query = $db->table('komponen_gaji')->where('nama_komponen', 'Tunjangan Istri/Suami')->get()->getRow();
+            if ($query) {
+                $tunjangan_pasangan = $query->nominal;
+            }
+        }
+    
+        // 3. Hitung Tunjangan Anak (maksimal 2 anak)
+        $anak_dihitung = min($data['anggota']['jumlah_anak'], 2); // Ambil nilai terkecil antara jumlah anak dan 2
+        $tunjangan_anak_satuan = 0;
+        $query = $db->table('komponen_gaji')->where('nama_komponen', 'Tunjangan Anak')->get()->getRow();
+        if($query){
+            $tunjangan_anak_satuan = $query->nominal;
+        }
+        $tunjangan_anak_total = $anak_dihitung * $tunjangan_anak_satuan;
+    
+        // Kirim data tunjangan ke view
+        $data['tunjangan_pasangan'] = ['nama' => 'Tunjangan Istri/Suami', 'nominal' => $tunjangan_pasangan];
+        $data['tunjangan_anak'] = ['nama' => "Tunjangan Anak ($anak_dihitung anak)", 'nominal' => $tunjangan_anak_total];
+
+        // 4. Hitung total Take Home Pay
+        $total_pokok_jabatan = array_sum(array_column($komponen_diterima, 'nominal'));
+        $data['take_home_pay'] = $total_pokok_jabatan + $tunjangan_pasangan + $tunjangan_anak_total;
+
+        return view('admin/penggajian/detail', $data);
+    }
 }

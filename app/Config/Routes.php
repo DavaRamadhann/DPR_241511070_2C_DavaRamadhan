@@ -42,6 +42,7 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->post('komponen/delete/(:num)', 'AdminController::deleteKomponen/$1'); 
 
     // --- RUTE BARU UNTUK PENGGAJIAN ---
+    $routes->get('penggajian', 'AdminController::penggajian');
     $routes->get('penggajian/create', 'AdminController::createPenggajian');
     $routes->post('penggajian/store', 'AdminController::storePenggajian');
 });

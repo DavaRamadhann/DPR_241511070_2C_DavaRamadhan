@@ -37,7 +37,7 @@
                     <a class="nav-link <?= is_active('komponen') ?>" href="<?= site_url('admin/komponen') ?>">Komponen Gaji</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= is_active('penggajian') ?>" href="#">Penggajian</a>
+                    <a class="nav-link <?= is_active('penggajian') ?>" href="<?= site_url('admin/penggajian') ?>">Penggajian</a>
                 </li>
             </ul>
             <span class="navbar-text text-white me-3">
