@@ -29,13 +29,12 @@ Kelola Komponen Gaji
                             <th>Jabatan</th>
                             <th>Nominal</th>
                             <th>Satuan</th>
-                            <th>Aksi</th>
-                        </tr>
+                            <th>Aksi</th> </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($komponen)): ?>
                             <tr>
-                                <td colspan="7" class="text-center">Belum ada data komponen gaji. Silakan tambahkan.</td>
+                                <td colspan="7" class="text-center">Belum ada data komponen gaji.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach($komponen as $item): ?>
@@ -47,8 +46,12 @@ Kelola Komponen Gaji
                                 <td>Rp <?= number_format($item['nominal'], 0, ',', '.') ?></td>
                                 <td>Per <?= esc($item['satuan']) ?></td>
                                 <td>
-                                    <a href="#" class="btn btn-sm btn-warning" title="Ubah"><i class="fas fa-edit"></i></a>
-                                    <a href="#" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></a>
+                                    <a href="<?= site_url('admin/komponen/edit/' . $item['id_komponen']) ?>" class="btn btn-sm btn-warning" title="Ubah"><i class="fas fa-edit"></i></a>
+
+                                    <form action="<?= site_url('admin/komponen/delete/' . $item['id_komponen']) ?>" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus komponen ini?');">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></button>
+                                    </form>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

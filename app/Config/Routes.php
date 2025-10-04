@@ -36,6 +36,10 @@ $routes->group('admin', ['filter' => 'auth'], function ($routes) {
     $routes->get('komponen', 'AdminController::komponenGaji');
     $routes->get('komponen/create', 'AdminController::createKomponen');
     $routes->post('komponen/store', 'AdminController::storeKomponen');
+
+    $routes->get('komponen/edit/(:num)', 'AdminController::editKomponen/$1');  
+    $routes->post('komponen/update/(:num)', 'AdminController::updateKomponen/$1'); 
+    $routes->post('komponen/delete/(:num)', 'AdminController::deleteKomponen/$1'); 
 });
 
 // Rute Publik

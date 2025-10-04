@@ -190,4 +190,58 @@ class AdminController extends BaseController
         
         return view('admin/komponen/index', $data); 
     }
+
+    public function editKomponen($id)
+    {
+        $model = new \App\Models\KomponenGajiModel();
+        $data['komponen'] = $model->find($id);
+
+        if (!$data['komponen']) {
+            // Jika data tidak ditemukan, tampilkan error 404
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Komponen gaji tidak ditemukan.');
+        }
+
+        return view('admin/komponen/edit', $data);
+    }
+
+    /**
+     * Memproses dan memperbarui data komponen gaji dari form edit.
+     */
+    public function updateKomponen($id)
+    {
+        // Aturan validasi (sama seperti saat membuat)
+        $rules = [
+            'nama_komponen' => 'required|min_length[3]',
+            'kategori'      => 'required',
+            'jabatan'       => 'required',
+            'nominal'       => 'required|numeric',
+            'satuan'        => 'required'
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $model = new \App\Models\KomponenGajiModel();
+        $model->update($id, [
+            'nama_komponen' => $this->request->getPost('nama_komponen'),
+            'kategori'      => $this->request->getPost('kategori'),
+            'jabatan'       => $this->request->getPost('jabatan'),
+            'nominal'       => $this->request->getPost('nominal'),
+            'satuan'        => $this->request->getPost('satuan')
+        ]);
+
+        return redirect()->to('/admin/komponen')->with('success', 'Data komponen gaji berhasil diperbarui!');
+    }
+
+    /**
+     * Menghapus data komponen gaji berdasarkan ID.
+     */
+    public function deleteKomponen($id)
+    {
+        $model = new \App\Models\KomponenGajiModel();
+        $model->delete($id);
+
+        return redirect()->to('/admin/komponen')->with('success', 'Komponen gaji berhasil dihapus.');
+    }
 }
